@@ -1,0 +1,48 @@
+servers = [
+  {
+    :hostname => "k3s-master",
+    :ip => "192.168.56.10",
+    :box => "debian/bookworm64",
+    :ram => 4096,
+    :cpu => 2,
+    :disk => 30720, # Taille en Mo (30 Go)
+    :provision => "bootstrap-master.sh"
+  },
+  {
+    :hostname => "k3s-node-1",
+    :ip => "192.168.56.101",
+    :box => "debian/bookworm64",
+    :ram => 2048,
+    :cpu => 1,
+    :disk => 30720, # Taille en Mo (30 Go)
+    :provision => "bootstrap-node.sh"
+  },
+  {
+    :hostname => "k3s-node-2",
+    :ip => "192.168.56.102",
+    :box => "debian/bookworm64",
+    :ram => 2048,
+    :cpu => 1,
+    :disk => 30720, # Taille en Mo (30 Go)
+    :provision => "bootstrap-node.sh"
+  }
+]
+
+Vagrant.configure("2") do |config|
+  # Synchronisation pour stocker le token de manière partagée
+  config.vm.synced_folder ".", "/vagrant", type: "virtualbox"
+  config.ssh.insert_key = false
+
+  servers.each do |machine|
+    config.vm.define machine[:hostname] do |node|
+      node.vm.box = machine[:box]
+      node.vm.hostname = machine[:hostname]
+      node.vm.network "private_network", ip: machine[:ip]
+      node.vm.provision :shell, path: machine[:provision]
+      node.vm.provider "virtualbox" do |vb|
+        vb.customize ["modifyvm", :id, "--cpus", machine[:cpu]]
+        vb.customize ["modifyvm", :id, "--memory", machine[:ram]]
+      end
+    end
+  end
+end
